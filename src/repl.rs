@@ -21,6 +21,21 @@ pub const BANNER: &str = r#"
     Version 0.1.0
 "#;
 
+const HELP_MESSAGE: &'static str=r#"
+    Qurious Command Line Help
+    Qurious is a SQL query engine built in Rust.
+
+    Usage
+        qurious [options] [query]
+    Options
+        -h or --help: Display this help information.
+        -v or --version: Show the version number of Qurious.
+        -f or --file: Specify the SQL query file to execute.
+        -c or --connect: Specify the database to connect to.
+        -u or --username: Define the username for the database.
+        -p or --password: Set the password for the database.
+"#;
+
 #[derive(Helper, Completer, Hinter, Validator)]
 pub struct ReplHelper {
     #[rustyline(Completer)]
