@@ -1,5 +1,5 @@
 use qurious_shell::repl;
 
 fn main() {
-    repl::run().unwrap()
+    repl::run()
 }

@@ -1,12 +1,16 @@
+mod completer;
+mod highlighter;
+
 use rustyline::completion::FilenameCompleter;
 use rustyline::error::ReadlineError;
 use rustyline::highlight::{Highlighter, MatchingBracketHighlighter};
 use rustyline::hint::HistoryHinter;
 use rustyline::validate::MatchingBracketValidator;
-use rustyline::Result;
-use rustyline::{config, Cmd, CompletionType, Config, EditMode, Editor, KeyEvent};
+use rustyline::{config, Cmd, CompletionType, EditMode, Editor, KeyEvent};
 use rustyline::{Completer, Helper, Hinter, Validator};
 use std::borrow::Cow::{self, Borrowed, Owned};
+
+use self::highlighter::ShellHighlighter;
 
 pub const BANNER: &str = r#" 
      ██████   ██    ██  ██  ██████    ██████   ██    ██  ███████ 
@@ -21,7 +25,7 @@ pub const BANNER: &str = r#"
     Version 0.1.0
 "#;
 
-const HELP_MESSAGE: &'static str=r#"
+const HELP_MESSAGE: &'static str = r#"
     Qurious Command Line Help
     Qurious is a SQL query engine built in Rust.
 
@@ -37,10 +41,10 @@ const HELP_MESSAGE: &'static str=r#"
 "#;
 
 #[derive(Helper, Completer, Hinter, Validator)]
-pub struct ReplHelper {
+pub struct ReplHelper<'a> {
     #[rustyline(Completer)]
     completer: FilenameCompleter,
-    highlighter: MatchingBracketHighlighter,
+    highlighter: ShellHighlighter<'a>,
     #[rustyline(Validator)]
     validator: MatchingBracketValidator,
     #[rustyline(Hinter)]
@@ -48,7 +52,7 @@ pub struct ReplHelper {
     colored_prompt: String,
 }
 
-impl Highlighter for ReplHelper {
+impl<'a> Highlighter for ReplHelper<'a> {
     fn highlight_prompt<'b, 's: 'b, 'p: 'b>(
         &'s self,
         prompt: &'p str,
@@ -74,23 +78,28 @@ impl Highlighter for ReplHelper {
     }
 }
 
-pub fn run() -> Result<()> {
+pub fn run() {
+    let prompt = "Qurious> ";
     let cfg = config::Builder::new()
         .history_ignore_space(true)
         .completion_type(CompletionType::List)
         .edit_mode(EditMode::Vi)
+        .auto_add_history(true)
+        .history_ignore_space(true)
         .build();
-    let mut repl = Editor::with_config(cfg)?;
 
-    let prompt = ">> ";
+    let mut repl = Editor::with_config(cfg).expect("Failed to create editor");
 
     repl.set_helper(Some(ReplHelper {
         completer: FilenameCompleter::new(),
-        highlighter: MatchingBracketHighlighter::new(),
+        highlighter: ShellHighlighter::new(),
         hinter: HistoryHinter::new(),
         colored_prompt: format!("\x1b[1;32m{prompt}\x1b[0m"),
         validator: MatchingBracketValidator::new(),
     }));
+
+    repl.bind_sequence(KeyEvent::alt('n'), Cmd::HistorySearchForward);
+    repl.bind_sequence(KeyEvent::alt('p'), Cmd::HistorySearchBackward);
 
     println!("{}", BANNER);
 
@@ -98,11 +107,10 @@ pub fn run() -> Result<()> {
         let readline = repl.readline(&prompt);
         match readline {
             Ok(line) => {
-                repl.add_history_entry(line.as_str())?;
                 println!("Line: {line}");
             }
             Err(ReadlineError::Interrupted) => {
-                println!("Interrupted");
+                println!("Bye 👋!");
                 break;
             }
             Err(ReadlineError::Eof) => {
@@ -115,6 +123,4 @@ pub fn run() -> Result<()> {
             }
         }
     }
-
-    Ok(())
 }
