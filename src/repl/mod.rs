@@ -1,6 +1,8 @@
 mod completer;
 mod highlighter;
 
+use arrow::util;
+use qurious::execution::session::ExecuteSession;
 use rustyline::completion::FilenameCompleter;
 use rustyline::error::ReadlineError;
 use rustyline::highlight::{Highlighter, MatchingBracketHighlighter};
@@ -26,18 +28,16 @@ pub const BANNER: &str = r#"
 "#;
 
 const HELP_MESSAGE: &'static str = r#"
-    Qurious Command Line Help
-    Qurious is a SQL query engine built in Rust.
+Qurious Command Line Help
+Qurious is a SQL query engine built in Rust.
 
-    Usage
-        qurious [options] [query]
-    Options
-        -h or --help: Display this help information.
-        -v or --version: Show the version number of Qurious.
-        -f or --file: Specify the SQL query file to execute.
-        -c or --connect: Specify the database to connect to.
-        -u or --username: Define the username for the database.
-        -p or --password: Set the password for the database.
+Type
+    \h or --help: Display this help information.
+    \v or --version: Show the version number of Qurious.
+    \f or --file: Specify the SQL query file to execute.
+    \c or --connect: Specify the database to connect to.
+    \u or --username: Define the username for the database.
+    \p or --password: Set the password for the database.
 "#;
 
 #[derive(Helper, Completer, Hinter, Validator)]
@@ -80,6 +80,7 @@ impl<'a> Highlighter for ReplHelper<'a> {
 
 pub fn run() {
     let prompt = "Qurious> ";
+
     let cfg = config::Builder::new()
         .history_ignore_space(true)
         .completion_type(CompletionType::List)
@@ -103,12 +104,25 @@ pub fn run() {
 
     println!("{}", BANNER);
 
+    let session = ExecuteSession::default();
+
     loop {
         let readline = repl.readline(&prompt);
         match readline {
-            Ok(line) => {
-                println!("Line: {line}");
-            }
+            Ok(line) => match line.as_str() {
+                "help" => println!("{}", HELP_MESSAGE),
+                _ => {
+                    let result = session.sql(&line);
+                    match result {
+                        Ok(data) => {
+                            util::pretty::print_batches(&data).unwrap();
+                        }
+                        Err(e) => {
+                            println!("Error: {:?}", e);
+                        }
+                    }
+                }
+            },
             Err(ReadlineError::Interrupted) => {
                 println!("Bye 👋!");
                 break;

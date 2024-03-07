@@ -9,4 +9,6 @@ path = "src/bin/shell.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+arrow = "50.0.0"
+qurious = { git = "https://github.com/holicc/qurious", branch = "main" }
 rustyline = { version = "13.0.0", features = ["derive"] }
